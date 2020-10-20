@@ -16,7 +16,6 @@ namespace Scenes.game
         {
             binary_formatter = new BinaryFormatter();
             lastUnlockedMap = 0;
-            Load();
         }
 
         public void Save()

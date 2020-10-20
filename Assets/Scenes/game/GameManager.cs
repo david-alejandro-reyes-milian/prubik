@@ -69,7 +69,10 @@ public class GameManager : MonoBehaviour
     {
         screenFader = GameObject.Find("ScreenFader").GetComponent<ScreenFadeInOut>();
         mainCamera = GetComponentInParent<Camera>();
+
         user_data = new UserData();
+        user_data.Load();
+
         levelBuilder = new LevelBuilder();
         _levelMap = new LevelMap();
         _levelMapSet = gameObject.AddComponent<LevelMapSet>();
