@@ -1,9 +1,11 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
-public class LevelMap : MonoBehaviour
+public class LevelMap
 {
     private HashSet<string> final_positions_hash;
     private HashSet<string> pending_positions_hash;
@@ -12,18 +14,23 @@ public class LevelMap : MonoBehaviour
     public ArrayList current_positions;
     public ArrayList final_positions;
     public int map_id;
-    public static string MAPS_FOLDER =
+
+    public static readonly string MapsFolder =
         Application.dataPath +
         Path.DirectorySeparatorChar + "Resources" +
         Path.DirectorySeparatorChar + "Maps" +
         Path.DirectorySeparatorChar;
-    public static string MAPS_SET_FILE = Application.dataPath +
-        Path.DirectorySeparatorChar + "Resources" +
-        Path.DirectorySeparatorChar + "Maps" +
-        Path.DirectorySeparatorChar +
-        "LevelMapSet.cs";
 
-    public LevelMap() { }
+    public static readonly string MapsSetFile = Application.dataPath +
+                                                Path.DirectorySeparatorChar + "Resources" +
+                                                Path.DirectorySeparatorChar + "Maps" +
+                                                Path.DirectorySeparatorChar +
+                                                "LevelMapSet.cs";
+
+    public LevelMap()
+    {
+    }
+
     public LevelMap(int level_width, int level_height,
         ArrayList current_positions, ArrayList final_positions)
     {
@@ -42,7 +49,6 @@ public class LevelMap : MonoBehaviour
 
     public LevelMap(string map_path)
     {
-
         current_positions = new ArrayList();
         final_positions = new ArrayList();
         pending_positions_hash = new HashSet<string>();
@@ -65,6 +71,7 @@ public class LevelMap : MonoBehaviour
             y = int.Parse(coord.Substring(2, 2));
             final_positions.Add(new Vector2(x, y));
         }
+
         positions_string = tmp[3].Split(' ');
         foreach (var coord in positions_string)
         {
@@ -73,6 +80,7 @@ public class LevelMap : MonoBehaviour
             y = int.Parse(coord.Substring(2, 2));
             current_positions.Add(new Vector2(x, y));
         }
+
         reader.Close();
         map_id = GetMapId();
         Init();
@@ -99,6 +107,7 @@ public class LevelMap : MonoBehaviour
             y = int.Parse(coord.Substring(2, 2));
             final_positions.Add(new Vector2(x, y));
         }
+
         positions_string = tmp[3].Split(' ');
         foreach (var coord in positions_string)
         {
@@ -107,14 +116,16 @@ public class LevelMap : MonoBehaviour
             y = int.Parse(coord.Substring(2, 2));
             current_positions.Add(new Vector2(x, y));
         }
+
         map_id = GetMapId();
         Init();
         return this;
     }
+
     public void Save(string map_name)
     {
         FileStream file_stream =
-            new FileStream(MAPS_FOLDER + map_name, FileMode.OpenOrCreate, FileAccess.Write);
+            new FileStream(MapsFolder + map_name, FileMode.OpenOrCreate, FileAccess.Write);
         StreamWriter writer = new StreamWriter(file_stream);
         writer.Write(GetMapString());
         writer.Close();
@@ -124,8 +135,8 @@ public class LevelMap : MonoBehaviour
     {
         public int Compare(object a, object b)
         {
-            Vector2 aa = (Vector2)a;
-            Vector2 bb = (Vector2)b;
+            Vector2 aa = (Vector2) a;
+            Vector2 bb = (Vector2) b;
             if (aa.x > bb.x)
                 return 1;
             else if (aa.x < bb.x)
@@ -137,9 +148,11 @@ public class LevelMap : MonoBehaviour
                 else if (aa.y < bb.y)
                     return -1;
             }
+
             return 0;
         }
     };
+
     public string GetMapString()
     {
         string map_string = "";
@@ -150,21 +163,24 @@ public class LevelMap : MonoBehaviour
 
         foreach (Vector2 position in final_positions)
         {
-            x = (int)position.x;
-            y = (int)position.y;
+            x = (int) position.x;
+            y = (int) position.y;
             tmp += FillDigits(x) + "" + FillDigits(y) + " ";
         }
+
         map_string += tmp + "|";
         tmp = "";
         foreach (Vector2 position in current_positions)
         {
-            x = (int)position.x;
-            y = (int)position.y;
+            x = (int) position.x;
+            y = (int) position.y;
             tmp += FillDigits(x) + "" + FillDigits(y) + " ";
         }
+
         map_string += tmp + "|";
         return map_string;
     }
+
     private string FillDigits(int value)
     {
         int digits_to_fill = 2;
@@ -180,11 +196,12 @@ public class LevelMap : MonoBehaviour
     {
         foreach (Vector2 position in final_positions)
         {
-            pending_positions_hash.Add((int)position.x + "" + (int)position.y);
-            final_positions_hash.Add((int)position.x + "" + (int)position.y);
+            pending_positions_hash.Add((int) position.x + "" + (int) position.y);
+            final_positions_hash.Add((int) position.x + "" + (int) position.y);
         }
+
         foreach (Vector2 position in current_positions)
-            pending_positions_hash.Remove((int)position.x + "" + (int)position.y);
+            pending_positions_hash.Remove((int) position.x + "" + (int) position.y);
     }
 
     public void AddPendingPosition(int x, int y)
@@ -209,6 +226,7 @@ public class LevelMap : MonoBehaviour
         {
             tmp += item + ",";
         }
+
         Debug.Log(tmp);
         Debug.Log("Count " + pending_positions_hash.Count);
     }
@@ -225,9 +243,9 @@ public class LevelMap : MonoBehaviour
 
         while (current_positions.Count <= 0)
             for (int i = 0; i < level_width && current_positions.Count < level_width * level_height / 2; i++)
-                for (int j = 0; j < level_height && current_positions.Count < level_width * level_height / 2; j++)
-                    if (Random.Range(0, 10) >= 5)
-                        current_positions.Add(new Vector2(i, j));
+            for (int j = 0; j < level_height && current_positions.Count < level_width * level_height / 2; j++)
+                if (Random.Range(0, 10) >= 5)
+                    current_positions.Add(new Vector2(i, j));
 
         while (final_positions.Count < current_positions.Count)
         {
@@ -238,6 +256,7 @@ public class LevelMap : MonoBehaviour
                 !final_positions.Contains(tmp))
                 final_positions.Add(tmp);
         }
+
         return new LevelMap(level_width, level_height, current_positions, final_positions);
     }
 
@@ -247,8 +266,8 @@ public class LevelMap : MonoBehaviour
         var final_positions = new ArrayList();
 
         for (int i = 0; i < level_width && current_positions.Count < level_width * level_height / 2; i++)
-            for (int j = 0; j < level_height && current_positions.Count < level_width * level_height / 2; j++)
-                current_positions.Add(new Vector2(i, j));
+        for (int j = 0; j < level_height && current_positions.Count < level_width * level_height / 2; j++)
+            current_positions.Add(new Vector2(i, j));
 
         while (final_positions.Count < current_positions.Count)
         {
@@ -259,24 +278,27 @@ public class LevelMap : MonoBehaviour
                 !final_positions.Contains(tmp))
                 final_positions.Add(tmp);
         }
+
         return new LevelMap(level_width, level_height, current_positions, final_positions);
     }
+
     private int GetMapId()
     {
         string map_id = level_width + "" + level_height;
         foreach (Vector2 item in final_positions)
-            map_id += (int)item.x + "" + (int)item.y;
+            map_id += (int) item.x + "" + (int) item.y;
         foreach (Vector2 item in current_positions)
-            map_id += (int)item.x + "" + (int)item.y;
+            map_id += (int) item.x + "" + (int) item.y;
         int map_id_code = map_id.GetHashCode();
         return map_id_code;
     }
+
     public static HashSet<int> LoadCurrentMapsHash()
     {
-        if (!Directory.Exists(MAPS_FOLDER))
-            Directory.CreateDirectory(MAPS_FOLDER);
+        if (!Directory.Exists(MapsFolder))
+            Directory.CreateDirectory(MapsFolder);
         HashSet<int> current_maps_hash = new HashSet<int>();
-        string[] file_names = Directory.GetFiles(MAPS_FOLDER, "*.map");
+        string[] file_names = Directory.GetFiles(MapsFolder, "*.map");
         FileStream file_stream;
         StreamReader reader;
         foreach (string map_path in file_names)
@@ -284,6 +306,7 @@ public class LevelMap : MonoBehaviour
             LevelMap m = new LevelMap(map_path);
             current_maps_hash.Add(m.map_id);
         }
+
         return current_maps_hash;
     }
 }

@@ -1,53 +1,53 @@
-﻿using UnityEngine;
-using System.Collections;
-using System.Runtime.Serialization.Formatters.Binary;
+﻿using System;
 using System.IO;
-using System;
+using System.Runtime.Serialization.Formatters.Binary;
+using UnityEngine;
 
-[System.Serializable]
-public class UserData
+namespace Scenes.game
 {
-    public int last_unlocked_map;
-    [System.NonSerialized]
-    private BinaryFormatter binary_formatter;
-    [System.NonSerialized]
-    private Stream fStream;
-    private string USER_DATA_PATH = Application.persistentDataPath + "/UserData.pru";
-    public UserData()
+    [System.Serializable]
+    public class UserData
     {
-        binary_formatter = new BinaryFormatter();
-        last_unlocked_map = 0;
-        Load();
-    }
+        public int lastUnlockedMap;
+        [NonSerialized] private BinaryFormatter binary_formatter;
+        [NonSerialized] private Stream fStream;
 
-    public void Save()
-    {
-        try
+        public UserData()
         {
-            fStream = new FileStream(USER_DATA_PATH,
-                FileMode.Create, FileAccess.Write, FileShare.None);
-            binary_formatter.Serialize(fStream, this);
-            fStream.Close();
-        }
-        catch (Exception e)
-        {
-            Debug.Log(e.Message);
+            binary_formatter = new BinaryFormatter();
+            lastUnlockedMap = 0;
+            Load();
         }
 
-    }
-    public void Load()
-    {
-        try
+        public void Save()
         {
-            fStream = File.OpenRead(USER_DATA_PATH);
-            UserData loaded_data = (UserData)binary_formatter.Deserialize(fStream);
-            last_unlocked_map = loaded_data.last_unlocked_map;
-            fStream.Close();
+            try
+            {
+                fStream = new FileStream(Application.persistentDataPath + "/UserData.pru",
+                    FileMode.Create, FileAccess.Write, FileShare.None);
+                binary_formatter.Serialize(fStream, this);
+                fStream.Close();
+            }
+            catch (Exception e)
+            {
+                Debug.Log(e.Message);
+            }
         }
-        catch (Exception e)
+
+        public void Load()
         {
-            Debug.Log("No existe el fichero de salvas: " + USER_DATA_PATH);
-            Debug.Log(e.Message);
+            try
+            {
+                fStream = File.OpenRead(Application.persistentDataPath + "/UserData.pru");
+                var loadedData = (UserData) binary_formatter.Deserialize(fStream);
+                lastUnlockedMap = loadedData.lastUnlockedMap;
+                fStream.Close();
+            }
+            catch (Exception e)
+            {
+                Debug.Log("No existe el fichero de salvas: " + Application.persistentDataPath + "/UserData.pru");
+                Debug.Log(e.Message);
+            }
         }
     }
 }

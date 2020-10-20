@@ -30,8 +30,8 @@ public class SetupCanvasController : MonoBehaviour
     public void StartMapBuilding()
     {
         buttons = new ArrayList();
-        int map_width = (int)slider_width.value;
-        int map_height = (int)slider_height.value;
+        int map_width = (int) slider_width.value;
+        int map_height = (int) slider_height.value;
 
 
         gameObject.GetComponent<CreateLevelCanvasController>().level_width = map_width;
@@ -46,11 +46,12 @@ public class SetupCanvasController : MonoBehaviour
 
         float size = canvas_x_size / map_width / 2;
         size = Mathf.Min(size, canvas_y_size / map_height / 2);
-        int margin = (int)(size * 2 / 100);
+        int margin = (int) (size * 2 / 100);
         size -= margin;
 
 
-        board.GetComponent<RectTransform>().sizeDelta = new Vector2((size + margin) * map_width * 2, (size + margin) * map_height * 2);
+        board.GetComponent<RectTransform>().sizeDelta =
+            new Vector2((size + margin) * map_width * 2, (size + margin) * map_height * 2);
         float x_start = -(size + margin) * map_width;
         float y_start = -(size + margin) * map_height;
         for (int i = 0; i < map_width; i++)
@@ -58,7 +59,8 @@ public class SetupCanvasController : MonoBehaviour
             for (int j = 0; j < map_height; j++)
             {
                 Vector3 pos =
-                    new Vector3(x_start + (size + margin) + i * (2 * (size + margin)), y_start + (size + margin) + j * (2 * (size + margin)), 1);
+                    new Vector3(x_start + (size + margin) + i * (2 * (size + margin)),
+                        y_start + (size + margin) + j * (2 * (size + margin)), 1);
                 GameObject btn = GameObject.Instantiate(cell_button_prefab) as GameObject;
                 btn.transform.parent = board.transform;
                 btn.GetComponent<RectTransform>().sizeDelta = new Vector2(size / 2, size / 2);
@@ -69,6 +71,7 @@ public class SetupCanvasController : MonoBehaviour
                 buttons.Add(btn);
             }
         }
+
         setup_canvas.SetActive(false);
     }
 
@@ -80,28 +83,29 @@ public class SetupCanvasController : MonoBehaviour
         {
             slider_height.value = slider_width.value;
         }
-
     }
+
     public void ChangeMapHeight()
     {
         selected_height.GetComponent<Text>().text = slider_height.value + "";
     }
+
     public static void CreateMapSet()
     {
-        int maps_count = LevelMap.LoadCurrentMapsHash().Count;
-        string map_set = "using System;using UnityEngine;public class LevelMapSet:MonoBehaviour{ public string[] maps = new string[]{";
-        for (int i = 0; i < maps_count; i++)
+        var mapsCount = LevelMap.LoadCurrentMapsHash().Count;
+        var mapSet =
+            "using System;using UnityEngine;public class LevelMapSet:MonoBehaviour{ public string[] maps = new string[]{";
+        for (int i = 0; i < mapsCount; i++)
         {
-            LevelMap m =
-           new LevelMap(LevelMap.MAPS_FOLDER + "map_" + (i + 1) + ".map");
-            map_set += "\"" + m.GetMapString() + "\",";
+            var m = new LevelMap(LevelMap.MapsFolder + "map_" + (i + 1) + ".map");
+            mapSet += "\"" + m.GetMapString() + "\",";
         }
-        map_set += "};}";
+
+        mapSet += "};}";
         FileStream file_stream =
-                    new FileStream(LevelMap.MAPS_SET_FILE, FileMode.OpenOrCreate, FileAccess.Write);
+            new FileStream(LevelMap.MapsSetFile, FileMode.OpenOrCreate, FileAccess.Write);
         StreamWriter writer = new StreamWriter(file_stream);
-        writer.Write(map_set);
+        writer.Write(mapSet);
         writer.Close();
     }
-
 }

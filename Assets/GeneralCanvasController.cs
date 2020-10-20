@@ -13,9 +13,9 @@ public class GeneralCanvasController : MonoBehaviour
 
     void OnMouseUp()
     {
-        if (game_manager.current_state != GameManager.moving_state)
+        if (game_manager.currentState != GameManager.MovingState)
         {
-            game_manager.current_state = GameManager.menu_state;
+            game_manager.currentState = GameManager.MenuState;
             menu_controller.TogleMenu();
         }
 

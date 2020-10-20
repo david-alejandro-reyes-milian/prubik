@@ -1,61 +1,59 @@
 ﻿using UnityEngine;
-using System.Collections;
+using UnityEngine.UI;
 
-public class ScreenFadeInOut : MonoBehaviour
+namespace Scenes.game
 {
+    public class ScreenFadeInOut : MonoBehaviour
+    {
+        public float fadeSpeed = 25f;
+        public bool sceneStarting;
+        public bool sceneEnding;
+        private Image image;
 
-    public float fade_speed = 25f;
-    public bool scene_starting = false;
-    public bool scene_ending = false;
-    private GUITexture guiTexture;
-    void Awake()
-    {
-        guiTexture = GetComponent<GUITexture>();
-        guiTexture.pixelInset = new Rect(0, 0, Screen.width, Screen.height);
-    }
+        private void Awake()
+        {
+            image = gameObject.AddComponent<Image>();
+            // guiTexture.rectTransform = new Rect(0, 0, Screen.width, Screen.height);
+        }
 
-    void Update()
-    {
-        if (scene_starting && !scene_ending)
+        private void Update()
         {
-            StartScene();
+            if (sceneStarting) StartScene();
+            else if (sceneEnding) EndScene();
         }
-        if (scene_ending)
-        {
-            EndScene();
-        }
-    }
-    public void MakeTransition()
-    {
-        scene_ending = true;
-    }
 
-    public void StartScene()
-    {
-        FadeToClear();
-        if (guiTexture.color.a <= 0.05f)
+        public void MakeTransition() => sceneEnding = true;
+
+        private void StartScene()
         {
-            guiTexture.color = Color.clear;
-            scene_starting = false;
+            FadeToClear();
+            if (image.color.a <= 0.05f)
+            {
+                image.color = Color.clear;
+                sceneStarting = false;
+            }
         }
-    }
-    public void EndScene()
-    {
-        FadeToBlack();
-        if (guiTexture.color.a >= 0.95f)
+
+        private void EndScene()
         {
-            guiTexture.enabled = true;
-            guiTexture.color = Color.black;
-            scene_ending = false;
-            scene_starting = true;
+            FadeToBlack();
+            if (image.color.a >= 0.95f)
+            {
+                image.enabled = true;
+                image.color = Color.black;
+                sceneEnding = false;
+                sceneStarting = true;
+            }
         }
-    }
-    void FadeToClear()
-    {
-        guiTexture.color = Color.Lerp(guiTexture.color, Color.clear, fade_speed * Time.deltaTime);
-    }
-    void FadeToBlack()
-    {
-        guiTexture.color = Color.Lerp(guiTexture.color, Color.black, fade_speed * Time.deltaTime);
+
+        private void FadeToClear()
+        {
+            image.color = Color.Lerp(image.color, Color.clear, fadeSpeed * Time.deltaTime);
+        }
+
+        private void FadeToBlack()
+        {
+            image.color = Color.Lerp(image.color, Color.black, fadeSpeed * Time.deltaTime);
+        }
     }
 }

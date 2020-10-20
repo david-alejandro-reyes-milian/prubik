@@ -1,23 +1,26 @@
 ﻿using System;
+using JetBrains.Annotations;
+using Scenes.game;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
 
 public class GameManager : MonoBehaviour
 {
     private const float piece_z_position = 0f;
-    public const int up_direction = 0;
-    public const int right_direction = 1;
-    public const int down_direction = 2;
-    public const int left_direction = 3;
+    public const int UpDirection = 0;
+    public const int RightDirection = 1;
+    public const int DownDirection = 2;
+    public const int LeftDirection = 3;
 
     // States
-    public const int idle_state = 0;
-    public const int moving_state = 1;
-    public const int mouse_down_state = 2;
-    public const int selection_made_state = 3;
-    public const int menu_state = 4;
-    public const int level_start_state = 5;
-    public const int scene_transition_state = 6;
+    private const int idleState = 0;
+    public const int MovingState = 1;
+    private const int mouseDownState = 2;
+    private const int selectionMadeState = 3;
+    public const int MenuState = 4;
+    private const int levelStartState = 5;
+    private const int sceneTransitionState = 6;
 
     private const float ray_start = -10000;
     public static int piece_enter_clip_index;
@@ -25,18 +28,19 @@ public class GameManager : MonoBehaviour
     public GameObject canvas;
     public GameObject generalCanvas;
     private Animation current_animation;
-    public int current_state;
+    public int currentState;
     public Vector3 direction;
     public float distance;
     private Vector3 final_position;
     public Vector3 heading;
 
     private LevelBuilder levelBuilder;
-    public static LevelMapSet level_maps_factory;
+    private static LevelMapSet _levelMapSet;
+    private static LevelMap _levelMap;
     private AudioClip level_won_clip;
 
     // External controllers
-    private ScreenFadeInOut screen_fader;
+    private ScreenFadeInOut screenFader;
     public MenuController menu_controller;
     private float min_selection_distance;
     public Vector3 mouse_current_position;
@@ -58,17 +62,17 @@ public class GameManager : MonoBehaviour
     private UserData user_data;
     private int created_map_index;
     public GameObject help;
+    public Camera mainCamera;
 
 
     void Awake()
     {
-        screen_fader = GameObject.Find("ScreenFader").GetComponent<ScreenFadeInOut>();
-    }
-    public void Start()
-    {
-        levelBuilder = new LevelBuilder();
-        level_maps_factory = new LevelMapSet();
+        screenFader = GameObject.Find("ScreenFader").GetComponent<ScreenFadeInOut>();
+        mainCamera = GetComponentInParent<Camera>();
         user_data = new UserData();
+        levelBuilder = new LevelBuilder();
+        _levelMap = new LevelMap();
+        _levelMapSet = gameObject.AddComponent<LevelMapSet>();
         movement_interpolation_speed = 5.5f * Screen.dpi;
         min_selection_distance = 5000f;
 
@@ -76,14 +80,13 @@ public class GameManager : MonoBehaviour
 
         InitSounds();
 
-        // Cargar ultimo mapa desblokeado por el usuario
-        LoadMap(user_data.last_unlocked_map);
+        LoadMap(user_data.lastUnlockedMap);
         created_map_index = 1;
-
     }
+
     public int GetLastUnlockedMap()
     {
-        return user_data.last_unlocked_map + 1;
+        return user_data.lastUnlockedMap + 1;
     }
 
     public void ShowHelp()
@@ -91,28 +94,28 @@ public class GameManager : MonoBehaviour
         help.SetActive(true);
         help.GetComponentInChildren<Animation>().Play("HelpLevelHand");
     }
+
     public void HideHelp()
     {
         help.SetActive(false);
     }
 
-    public void LoadMap(int map_index)
+    public void LoadMap(int mapIndex)
     {
         // Si se carga el primer mapa se muestra la ayuda asociada
-        if (map_index == 0) ShowHelp();
+        if (mapIndex == 0) ShowHelp();
         else HideHelp();
-
 
         canvas.SetActive(false);
         generalCanvas.SetActive(false);
         //Se destruye el mapa anterior
         Destroy(levelBuilder.board);
 
-        current_map = map_index;
-        menu_controller.SetLevelNumber(map_index + 1);
+        current_map = mapIndex;
+        menu_controller.SetLevelNumber(mapIndex + 1);
 
         //MAP
-        LevelMap m = new LevelMap().Load(GameManager.level_maps_factory.maps[map_index]);
+        _levelMap = _levelMap.Load(_levelMapSet.maps[mapIndex]);
 
         //int random_level_width = UnityEngine.Random.Range(2, 4);
         //LevelMap m =
@@ -121,11 +124,10 @@ public class GameManager : MonoBehaviour
         //m.Save("map_" + (level_maps_factory.maps.Length + ++created_map_index) + ".map");
         //SetupCanvasController.CreateMapSet();
 
-        levelBuilder.BuildMap(m);
-        int min = Math.Min(levelBuilder.board_resolution.width, levelBuilder.board_resolution.height);
-        int max = Math.Max(levelBuilder.board_resolution.width, levelBuilder.board_resolution.height);
-        Camera.main.orthographicSize =
-            min + min * max / min;
+        levelBuilder.BuildMap(_levelMap);
+        var min = Math.Min(levelBuilder.board_resolution.width, levelBuilder.board_resolution.height);
+        var max = Math.Max(levelBuilder.board_resolution.width, levelBuilder.board_resolution.height);
+        mainCamera.orthographicSize = min + min * max / min;
 
         selection = new GameObject("Selection");
         selection.transform.parent = levelBuilder.board.transform;
@@ -134,9 +136,8 @@ public class GameManager : MonoBehaviour
         piece_margin = levelBuilder.half_margin * 2;
 
         piece_started_index = 0;
-        screen_fader.MakeTransition();
-        current_state = level_start_state;
-
+        screenFader.MakeTransition();
+        currentState = levelStartState;
     }
 
     private void InitSounds()
@@ -148,159 +149,175 @@ public class GameManager : MonoBehaviour
             piece_enter_clips[i] = Resources.Load("Sounds/combo_sound" + i, typeof(AudioClip)) as AudioClip;
         piece_enter_clip_index = 0;
     }
+
     private void Update()
     {
-        HandleMenuActions();
-        HandleLevelStart();
-
-        if (current_state == idle_state)
+        switch (currentState)
         {
-            if (Input.GetMouseButtonDown(0))
+            case levelStartState:
             {
-                Ray vRayStart = Camera.main.ScreenPointToRay(Input.mousePosition);
-                mouse_start_position = vRayStart.origin;
-                current_state = mouse_down_state;
+                OnLevelStart();
+                break;
             }
-        }
-        else if (current_state == mouse_down_state)
-        {
-            //Si se levanta el mouse y no se realizo un movimiento se retorna al estado idle
-            if (Input.GetMouseButtonUp(0)) { current_state = idle_state; return; }
-
-            mouse_current_position = Camera.main.ScreenPointToRay(Input.mousePosition).origin;
-            float delta_position = Math.Abs(mouse_current_position.sqrMagnitude -
-                                            mouse_start_position.sqrMagnitude);
-            //si se tienen dos puntos se puede describir un vector.
-            if (delta_position >= min_selection_distance)
+            case idleState:
             {
-                //Se oculta el menu, en caso de estar abierto
-                menu_controller.HideMenu();
-
-                //Vector desde la posicion inicial del mouse hasta la posicion actual
-                heading = mouse_current_position - mouse_start_position;
-                //Distancia entre los puntos = magnitude del vector
-                distance = heading.magnitude;
-                //Direccion es igual al vector distancia normalizado
-                direction = heading / distance;
-                MakeSelection();
-                if (selection.transform.childCount > 0)
-                    PlayMovementSound();
-                current_state = selection_made_state;
+                OnIdle();
+                break;
             }
-        }
-
-        else if (current_state == selection_made_state)
-        {
-            float delta_position = EdgedDistance();
-            if (true)
+            case mouseDownState:
             {
-                partial_position = selection.transform.position;
-                current_state = moving_state;
-                // Se va al proximo estado
-                float next_x = selection_initial_position.x;
-                float next_y = selection_initial_position.y;
-                float position_offset = (delta_position > 0
-                    ? (piece_size + piece_margin)
-                    : -(piece_size + piece_margin));
-                if (moving_on_x)
-                    next_x += position_offset;
-                else
-                    next_y += position_offset;
-                final_position = new Vector3(next_x, next_y, 0);
-
-                //Se crean los reemplazos
-                UpdatePiecesReplacement();
+                OnMouseDown();
+                break;
             }
-        }
-        else if (current_state == moving_state)
-        {
-            AnimateMovement(partial_position, final_position);
+            case selectionMadeState:
+            {
+                OnSelectionMade();
+                break;
+            }
+            case MovingState:
+                AnimateMovement();
+                break;
         }
 
-        // Salir
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             print("Escape");
-            // No trabaja bien(BUSCAR)
-            //Application.Quit();
-            // Primero se guarda el estado actual de la partida
             OnApplicationQuit();
-            // Luego se cierra forzadamente, funciona correctamente en Android
             ForceQuit();
         }
-
     }
 
-    private void HandleLevelStart()
+    private void OnSelectionMade()
     {
-        if (current_state == level_start_state)
+        float deltaPosition = EdgedDistance();
+        partial_position = selection.transform.position;
+        currentState = MovingState;
+        // Se va al proximo estado
+        float nextX = selection_initial_position.x;
+        float nextY = selection_initial_position.y;
+        float positionOffset = (deltaPosition > 0
+            ? (piece_size + piece_margin)
+            : -(piece_size + piece_margin));
+
+        if (moving_on_x) nextX += positionOffset;
+        else nextY += positionOffset;
+        final_position = new Vector3(nextX, nextY, 0);
+
+        UpdatePiecesReplacement();
+    }
+
+    private void OnMouseDown()
+    {
+        Debug.Log("terryx down");
+        mouse_current_position = mainCamera.ScreenPointToRay(Input.mousePosition).origin;
+        float delta_position = Math.Abs(mouse_current_position.sqrMagnitude -
+                                        mouse_start_position.sqrMagnitude);
+        //si se tienen dos puntos se puede describir un vector.
+        if (delta_position >= min_selection_distance)
         {
-            if (Input.GetMouseButtonDown(0))
-            {
-                EndLevelStartAnimation();
-            }
+            //Se oculta el menu, en caso de estar abierto
+            menu_controller.HideMenu();
 
-            if (piece_started_index > levelBuilder.pieces.Count - 1)
-            {
-                //Se termino la animacion de inicio de nivel
-                current_state = idle_state;
-                canvas.SetActive(true);
-                generalCanvas.SetActive(true);
-                levelBuilder.starting_level = false;
-                return;
-            }
-            if (current_animation != null && current_animation.isPlaying)
-                return;
-
-            current_animation = (levelBuilder.pieces[piece_started_index++] as GameObject).GetComponent<Animation>();
-
-            current_animation.Play("PieceEnterAnimation");
+            //Vector desde la posicion inicial del mouse hasta la posicion actual
+            heading = mouse_current_position - mouse_start_position;
+            //Distancia entre los puntos = magnitude del vector
+            distance = heading.magnitude;
+            //Direccion es igual al vector distancia normalizado
+            direction = heading / distance;
+            MakeSelection();
+            if (selection.transform.childCount > 0)
+                PlayMovementSound();
+            currentState = selectionMadeState;
         }
+    }
+
+    private void OnIdle()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            Debug.Log("terry");
+            var vRayStart = mainCamera.ScreenPointToRay(Input.mousePosition);
+            mouse_start_position = vRayStart.origin;
+            currentState = mouseDownState;
+        }
+    }
+
+    private void OnLevelStart()
+    {
+        if (currentState != levelStartState) return;
+
+        if (Input.GetMouseButtonDown(0)) EndLevelStartAnimation();
+
+        if (piece_started_index > levelBuilder.pieces.Count - 1)
+        {
+            ConcludeLevelStart();
+            return;
+        }
+
+        if (current_animation != null && current_animation.isPlaying) return;
+
+        current_animation = ((GameObject) levelBuilder.pieces[piece_started_index++]).GetComponent<Animation>();
+        current_animation.Play("PieceEnterAnimation");
+    }
+
+    private void ConcludeLevelStart()
+    {
+        currentState = idleState;
+        canvas.SetActive(true);
+        generalCanvas.SetActive(true);
+        levelBuilder.starting_level = false;
     }
 
     public void ForceQuit()
     {
         System.Diagnostics.Process.GetCurrentProcess().Kill();
     }
-    void EndLevelStartAnimation()
-    {
-        // Terminar animacion de inicio de nivel
-        for (int i = piece_started_index; i < levelBuilder.pieces.Count; i++)
-            (levelBuilder.pieces[i] as GameObject).transform.localScale = new Vector3(1, 1, 1);
 
-        //Se termino la animacion de inicio de nivel
-        current_state = idle_state;
-        canvas.SetActive(true);
-        generalCanvas.SetActive(true);
-        levelBuilder.starting_level = false;
-        return;
+    private void EndLevelStartAnimation()
+    {
+        for (var i = piece_started_index; i < levelBuilder.pieces.Count; i++)
+            ((GameObject) levelBuilder.pieces[i]).transform.localScale = new Vector3(1, 1, 1);
+
+        ConcludeLevelStart();
     }
 
-    bool OverMenu()
+    private static bool OverMenu()
     {
-        return (EventSystem.current.IsPointerOverGameObject(0) ||
-            EventSystem.current.IsPointerOverGameObject());
+        return EventSystem.current.IsPointerOverGameObject(0) || EventSystem.current.IsPointerOverGameObject();
     }
+
     private void HandleMenuActions()
     {
-        if (current_state != level_start_state && OverMenu())
+        if (currentState != levelStartState && OverMenu())
         {
             // Si no se esta cargando ningun nivel y se dan clicks solo sobre el menu, prevalece el estado de menu
-            current_state = menu_state;
+            currentState = MenuState;
         }
-        if (current_state == menu_state && !OverMenu())
+
+        if (currentState == MenuState && !OverMenu())
         {
             // Si estado == menu_activo y se toca algo fuera del menu se cambia el estado a idle
-            current_state = idle_state;
+            currentState = idleState;
         }
+
         if (Input.GetKeyUp(KeyCode.Menu) || Input.GetKeyUp(KeyCode.KeypadEnter))
         {
             // Si estado = inicio de nivel se termina la animacion de inicio de nivel y se esconde el menu
-            if (current_state == level_start_state) { EndLevelStartAnimation(); current_state = menu_state; menu_controller.ShowMenu(); }
+            if (currentState == levelStartState)
+            {
+                EndLevelStartAnimation();
+                currentState = MenuState;
+                menu_controller.ShowMenu();
+            }
 
             // Si estado == idle, se intercambia estado de menu
-            if (current_state == idle_state) { current_state = menu_state; menu_controller.TogleMenu(); }
+            if (currentState == idleState)
+            {
+                currentState = MenuState;
+                menu_controller.TogleMenu();
+            }
         }
+
         //Para abrir el menu con click en cualkier sitio
         //if (Input.GetMouseButtonUp(0) && current_state == mouse_down_state)
         //{
@@ -312,63 +329,61 @@ public class GameManager : MonoBehaviour
     private void PlayMovementSound()
     {
         if (MenuController.sound_enabled)
-            Camera.main.GetComponent<AudioSource>().PlayOneShot(movement_clip, .5f);
+            mainCamera.GetComponent<AudioSource>().PlayOneShot(movement_clip, .5f);
     }
 
     private void LevelWonSound()
     {
         if (MenuController.sound_enabled)
-            Camera.main.GetComponent<AudioSource>().PlayOneShot(level_won_clip, .5f);
+            mainCamera.GetComponent<AudioSource>().PlayOneShot(level_won_clip, .5f);
     }
 
     private void UpdatePiecesReplacement()
     {
-        for (int i = selection.transform.childCount - 1; i >= 0; i--)
+        for (var i = selection.transform.childCount - 1; i >= 0; i--)
         {
-            Transform piece = selection.transform.GetChild(i);
-            var logical_piece = piece.gameObject.GetComponent<Piece>();
-            logical_piece.SetInactiveOnMapState();
-            if (logical_piece.GoesOut(movement_direction))
-            {
-                // Si la ficha sale del tablero se genera automaticamente su reemplazo en la 
-                // direccion opuesta para realizar la animacion correspondiente y se elimina
-                // la ficha ke muere
-                int next_x = logical_piece.x, next_y = logical_piece.y;
-                if (moving_on_x) next_x = logical_piece.x == 0 ? levelBuilder.level_width : -1;
-                else next_y = logical_piece.y == 0 ? levelBuilder.level_height : -1;
+            var pieceTransform = selection.transform.GetChild(i);
+            var piece = pieceTransform.gameObject.GetComponent<Piece>();
+            piece.SetInactiveOnMapState();
+            if (!piece.GoesOut(movement_direction)) continue;
 
-                GameObject new_piece = levelBuilder.BuildPieceGameObject(new Vector2(next_x, next_y),
-                    LevelBuilder.piece_kind_normal);
-                new_piece.transform.parent = selection.transform;
-                new_piece.name = piece.name;
+            // Si la ficha sale del tablero se genera automaticamente su reemplazo en la 
+            // direccion opuesta para realizar la animacion correspondiente y se elimina
+            // la ficha ke muere
+            int nextX = piece.x, nextY = piece.y;
+            if (moving_on_x) nextX = piece.x == 0 ? levelBuilder.level_width : -1;
+            else nextY = piece.y == 0 ? levelBuilder.level_height : -1;
 
-                // Manda a eliminar la ficha al terminar la animacion del movimiento actual
-                logical_piece.AutoDestroyOnFuture();
-            }
+            var newPiece = levelBuilder.BuildPieceGameObject(new Vector2(nextX, nextY),
+                LevelBuilder.piece_kind_normal);
+            newPiece.transform.parent = selection.transform;
+            newPiece.name = pieceTransform.name;
+
+            // Manda a eliminar la ficha al terminar la animacion del movimiento actual
+            piece.AutoDestroyOnFuture();
         }
     }
 
-    private void AnimateMovement(Vector3 partial_position, Vector3 final_position)
+    private void AnimateMovement()
     {
-        if (current_state == moving_state)
+        if (currentState == MovingState)
         {
             movement_interpolation += Time.deltaTime * movement_interpolation_speed;
             selection.transform.position = Vector3.MoveTowards(selection.transform.position, final_position,
                 movement_interpolation);
-            float abs_sqr_delta_position =
+            var absSqrDeltaPosition =
                 Math.Abs(selection.transform.position.sqrMagnitude - final_position.sqrMagnitude);
-
-            if (abs_sqr_delta_position <= min_selection_distance)
-            {
-                // Se fuerza la posicion final para evitar errores
-                selection.transform.position = final_position;
-                // Se reinicia el manejador de interpolacion
-                movement_interpolation = 0;
-
-                // Se actualiza la logica de las fichas movidas
-
-                RemoveUpdateChilds(selection);
-            }
+            print("move!!!" + absSqrDeltaPosition);
+            // if (absSqrDeltaPosition <= min_selection_distance)
+            // {
+            // Se fuerza la posicion final para evitar errores
+            selection.transform.position = final_position;
+            // Se reinicia el manejador de interpolacion
+            movement_interpolation = 0;
+            // Se actualiza la logica de las fichas movidas
+            RemoveUpdateChildren(selection);
+            currentState = idleState;
+            // }
         }
     }
 
@@ -383,33 +398,34 @@ public class GameManager : MonoBehaviour
 
     private void MakeSelection()
     {
+        Debug.Log("make sel");
         //Se toman las componentes del vector de direccion para conocer hacia donde desea
         //mover el usuario
-        var component_x = new Vector2(heading.x, 0);
-        var component_y = new Vector2(0, heading.y);
-        double magnitude_x = component_x.sqrMagnitude;
-        double magnitude_y = component_y.sqrMagnitude;
+        var componentX = new Vector2(heading.x, 0);
+        var componentY = new Vector2(0, heading.y);
+        double magnitudeX = componentX.sqrMagnitude;
+        double magnitudeY = componentY.sqrMagnitude;
 
-        var ray = new Ray();
-        if (magnitude_x > magnitude_y)
+        Ray ray;
+        if (magnitudeX > magnitudeY)
         {
             ray = new Ray(new Vector3(ray_start, mouse_start_position.y, 0), Vector2.right);
-
             moving_on_x = true;
             if (direction.x <= 0)
-                movement_direction = right_direction;
+                movement_direction = RightDirection;
             else
-                movement_direction = left_direction;
+                movement_direction = LeftDirection;
         }
         else
         {
             ray = new Ray(new Vector3(mouse_start_position.x, ray_start, 0), Vector2.up);
             moving_on_x = false;
             if (direction.y >= 0)
-                movement_direction = up_direction;
+                movement_direction = UpDirection;
             else
-                movement_direction = down_direction;
+                movement_direction = DownDirection;
         }
+
         SelectObjectsInRay(ray);
     }
 
@@ -418,67 +434,68 @@ public class GameManager : MonoBehaviour
         // Se captura la posicion inicial de la seleccion para uso posterior
         selection_initial_position = selection.transform.position;
 
-        RaycastHit[] hits = Physics.RaycastAll(ray);
-        if (hits.Length > 0)
-            foreach (RaycastHit hit in hits)
-            {
-                Transform piece = hit.transform;
-                piece.parent = selection.transform;
-            }
+        var hits = Physics.RaycastAll(ray);
+
+        if (hits.Length <= 0) return;
+        foreach (var hit in hits)
+        {
+            var piece = hit.transform;
+            piece.parent = selection.transform;
+        }
     }
 
-    private void RemoveUpdateChilds(GameObject go)
+    private void RemoveUpdateChildren(GameObject go)
     {
-        for (int i = go.transform.childCount - 1; i >= 0; i--)
+        for (var i = go.transform.childCount - 1; i >= 0; i--)
         {
-            int index = i;
-            if (movement_direction == down_direction ||
-                movement_direction == right_direction)
+            var index = i;
+            if (movement_direction == DownDirection ||
+                movement_direction == RightDirection)
                 index = go.transform.childCount - i - 1;
 
-            Transform piece = go.transform.GetChild(index);
-            var logical_piece = piece.gameObject.GetComponent<Piece>();
+            var pieceTransform = go.transform.GetChild(index);
+            var piece = pieceTransform.gameObject.GetComponent<Piece>();
 
-            if (logical_piece.auto_destroy)
-                logical_piece.Destroy();
+            if (piece.autoDestroy)
+                piece.Destroy();
             else
             {
-                logical_piece.UpdateLogicalPosition(movement_direction);
-                logical_piece.SetActiveOnMapState();
-                piece.transform.parent = levelBuilder.board.transform;
+                piece.UpdateLogicalPosition(movement_direction);
+                piece.SetActiveOnMapState();
+                pieceTransform.transform.parent = levelBuilder.board.transform;
             }
         }
+
         if (levelBuilder.map.LevelWon())
         {
-
             LevelWonSound();
             print("You Win!!!");
-            int next_map = (current_map + 1) % level_maps_factory.maps.Length;
-            user_data.last_unlocked_map = Mathf.Max(user_data.last_unlocked_map, next_map);
-            LoadMap(next_map);
+            int nextMap = (current_map + 1) % _levelMapSet.maps.Length;
+            user_data.lastUnlockedMap = Mathf.Max(user_data.lastUnlockedMap, nextMap);
+            LoadMap(nextMap);
         }
         else
-            current_state = idle_state;
+            currentState = idleState;
     }
 
     private void CleanSelection()
     {
-        for (int i = selection.transform.childCount - 1; i >= 0; i--)
+        for (var i = selection.transform.childCount - 1; i >= 0; i--)
         {
-            Transform child = selection.transform.GetChild(i);
+            var child = selection.transform.GetChild(i);
             child.transform.parent = levelBuilder.board.transform;
         }
     }
-    public void OnApplicationPause()
+
+    public void OnApplicationPause(bool pauseStatus)
     {
         print("OnApplicationPause");
-        if (user_data != null)
-            user_data.Save();
+        user_data?.Save();
     }
+
     public void OnApplicationQuit()
     {
         print("OnApplicationQuit");
-        if (user_data != null)
-            user_data.Save();
+        user_data?.Save();
     }
 }

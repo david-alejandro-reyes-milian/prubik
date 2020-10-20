@@ -1,83 +1,84 @@
 ﻿using UnityEngine;
 
-public class Piece : MonoBehaviour
+namespace Scenes.game
 {
-    public bool active;
-    private AudioSource audio_source;
-    public bool auto_destroy;
-    private LevelMap map;
-    public int x;
-    public int y;
-
-    public Piece Init(int x, int y, LevelMap map)
+    public class Piece : MonoBehaviour
     {
-        this.x = x;
-        this.y = y;
-        active = true;
-        this.map = map;
-        auto_destroy = false;
-        audio_source = Camera.main.GetComponent<AudioSource>();
-        return this;
-    }
+        private AudioSource audio_source;
+        public bool autoDestroy;
+        private LevelMap map;
+        public int x;
+        public int y;
 
-    public void AutoDestroyOnFuture()
-    {
-        auto_destroy = true;
-    }
-
-    public void SetInactiveOnMapState()
-    {
-        map.AddPendingPosition(x, y);
-    }
-
-    public void SetActiveOnMapState()
-    {
-        map.RemovePendingPosition(x, y);
-    }
-
-    public void UpdateLogicalPosition(int movement_direction)
-    {
-        switch (movement_direction)
+        public void Init(int pX, int pY, LevelMap pMap)
         {
-            case GameManager.up_direction:
-                y += 1;
-                break;
-            case GameManager.right_direction:
-                x += 1;
-                break;
-            case GameManager.down_direction:
-                y -= 1;
-                break;
-            case GameManager.left_direction:
-                x -= 1;
-                break;
+            x = pX;
+            y = pY;
+            map = pMap;
+            autoDestroy = false;
+            audio_source = Camera.main.GetComponent<AudioSource>();
         }
-    }
 
-    public bool GoesOut(int direction)
-    {
-        bool goes_out = false;
-        switch (direction)
+        public void AutoDestroyOnFuture()
         {
-            case GameManager.up_direction:
-                goes_out = y >= map.level_height - 1;
-                break;
-            case GameManager.right_direction:
-                goes_out = x >= map.level_width - 1;
-                break;
-            case GameManager.down_direction:
-                goes_out = y <= 0;
-                break;
-            case GameManager.left_direction:
-                goes_out = x <= 0;
-                break;
+            autoDestroy = true;
         }
-        return goes_out;
-    }
 
-    public void Destroy()
-    {
-        gameObject.transform.parent = null;
-        Destroy(gameObject);
+        public void SetInactiveOnMapState()
+        {
+            map.AddPendingPosition(x, y);
+        }
+
+        public void SetActiveOnMapState()
+        {
+            map.RemovePendingPosition(x, y);
+        }
+
+        public void UpdateLogicalPosition(int movementDirection)
+        {
+            switch (movementDirection)
+            {
+                case GameManager.UpDirection:
+                    y += 1;
+                    break;
+                case GameManager.RightDirection:
+                    x += 1;
+                    break;
+                case GameManager.DownDirection:
+                    y -= 1;
+                    break;
+                case GameManager.LeftDirection:
+                    x -= 1;
+                    break;
+            }
+        }
+
+        public bool GoesOut(int direction)
+        {
+            var goesOut = false;
+            switch (direction)
+            {
+                case GameManager.UpDirection:
+                    goesOut = y >= map.level_height - 1;
+                    break;
+                case GameManager.RightDirection:
+                    goesOut = x >= map.level_width - 1;
+                    break;
+                case GameManager.DownDirection:
+                    goesOut = y <= 0;
+                    break;
+                case GameManager.LeftDirection:
+                    goesOut = x <= 0;
+                    break;
+            }
+
+            return goesOut;
+        }
+
+        public void Destroy()
+        {
+            gameObject.transform.parent = null;
+            Destroy(gameObject);
+        }
     }
 }

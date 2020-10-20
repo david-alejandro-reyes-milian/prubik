@@ -139,7 +139,7 @@ public class TexturePacker : ScriptableWizard
     {
         TextureImporter TexImport = AssetImporter.GetAtPath(TexturePath) as TextureImporter;
         TextureImporterSettings tiSettings = new TextureImporterSettings();
-        TexImport.textureType = TextureImporterType.Advanced;
+        TexImport.textureType = TextureImporterType.Default;
         TexImport.ReadTextureSettings(tiSettings);
         tiSettings.mipmapEnabled = false;
         tiSettings.readable = true;
