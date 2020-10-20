@@ -39,7 +39,6 @@ public class LevelBuilder
         piece_animation_clip =
             Resources.Load(ANIMATIONS_FOLDER + "PieceEnterAnimation",
                 typeof(AnimationClip)) as AnimationClip;
-
     }
 
     public void BuildMap(LevelMap map)
@@ -69,34 +68,30 @@ public class LevelBuilder
             pieces.Add(BuildPieceGameObject(position, piece_kind_final));
     }
 
-    public GameObject BuildPieceGameObject(Vector2 position, int piece_kind)
+    public GameObject BuildPieceGameObject(Vector2 position, int pieceKind)
     {
-        GameObject piece = CreateCustomQuad(quad_mesh,
-            piece_kind == piece_kind_normal
+        var piece = CreateCustomQuad(quad_mesh,
+            pieceKind == piece_kind_normal
                 ? "CubeMat"
                 : "FinalPositionMat");
-        piece.name = piece_kind == piece_kind_normal ? "Piece " + piece_count++ : "Final position";
+        piece.name = pieceKind == piece_kind_normal ? "Piece " + piece_count++ : "Final position";
         piece.AddComponent<Animation>().AddClip(piece_animation_clip, "PieceEnterAnimation");
         piece.AddComponent<PieceSoundController>().Init();
-        MeshRenderer mesh_renderer = piece.GetComponent<MeshRenderer>();
-        mesh_renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        mesh_renderer.receiveShadows = false;
-        mesh_renderer.useLightProbes = false;
-        mesh_renderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+        var meshRenderer = piece.GetComponent<MeshRenderer>();
+        meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        meshRenderer.receiveShadows = false;
+        meshRenderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
 
-        if (starting_level)
-        {
-            piece.transform.localScale = new Vector3(0, 0);
-        }
+        if (starting_level) piece.transform.localScale = new Vector3(0, 0);
 
-        int layer = layer_final_positions;
-        if (piece_kind == piece_kind_normal)
+        var layer = layer_final_positions;
+        if (pieceKind == piece_kind_normal)
         {
             var collider = piece.AddComponent<BoxCollider>();
             collider.center = new Vector3(collider.center.x, collider.center.y, 0);
             collider.size = new Vector3(2 * half_piece_size, 2 * half_piece_size, 80f);
             collider.isTrigger = true;
-            piece.AddComponent<Piece>().Init((int)position.x, (int)position.y, map);
+            piece.AddComponent<Piece>().Init((int) position.x, (int) position.y, map);
             layer = layer_pieces;
         }
 
@@ -110,8 +105,8 @@ public class LevelBuilder
     private Resolution BoardResolution()
     {
         var r = new Resolution();
-        r.height = (int)(half_piece_size + half_margin) * level_height;
-        r.width = (int)(half_piece_size + half_margin) * level_width;
+        r.height = (int) (half_piece_size + half_margin) * level_height;
+        r.width = (int) (half_piece_size + half_margin) * level_width;
         return r;
     }
 
@@ -132,7 +127,7 @@ public class LevelBuilder
     private GameObject CreateCustomQuad(Mesh mesh, string material_name)
     {
         var go = new GameObject("CustomQuad");
-        var meshFilter = (MeshFilter)go.AddComponent(typeof(MeshFilter));
+        var meshFilter = (MeshFilter) go.AddComponent(typeof(MeshFilter));
         meshFilter.mesh = mesh;
         var renderer = go.AddComponent(typeof(MeshRenderer)) as MeshRenderer;
         renderer.material = Resources.Load(MATERIALS_FOLDER + material_name, typeof(Material)) as Material;
@@ -145,10 +140,11 @@ public class LevelBuilder
 
         return go;
     }
+
     private GameObject CreateCustomQuad(Mesh mesh, Material material)
     {
         var go = new GameObject("CustomQuad");
-        var meshFilter = (MeshFilter)go.AddComponent(typeof(MeshFilter));
+        var meshFilter = (MeshFilter) go.AddComponent(typeof(MeshFilter));
         meshFilter.mesh = mesh;
         var renderer = go.AddComponent(typeof(MeshRenderer)) as MeshRenderer;
         renderer.material = material;
@@ -173,7 +169,7 @@ public class LevelBuilder
             new Vector2(1, 1),
             new Vector2(1, 0)
         };
-        m.triangles = new[] { 0, 1, 2, 0, 2, 3 };
+        m.triangles = new[] {0, 1, 2, 0, 2, 3};
         m.RecalculateNormals();
         return m;
     }

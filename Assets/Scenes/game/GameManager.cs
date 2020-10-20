@@ -65,7 +65,7 @@ public class GameManager : MonoBehaviour
     public Camera mainCamera;
 
 
-    void Awake()
+    private void Awake()
     {
         screenFader = GameObject.Find("ScreenFader").GetComponent<ScreenFadeInOut>();
         mainCamera = GetComponentInParent<Camera>();
@@ -119,14 +119,6 @@ public class GameManager : MonoBehaviour
 
         //MAP
         _levelMap = _levelMap.Load(_levelMapSet.maps[mapIndex]);
-
-        //int random_level_width = UnityEngine.Random.Range(2, 4);
-        //LevelMap m =
-        //    LevelMap.GetRandomMap(random_level_width,
-        //        UnityEngine.Random.Range(random_level_width, random_level_width * UnityEngine.Random.Range(1, 3)));
-        //m.Save("map_" + (level_maps_factory.maps.Length + ++created_map_index) + ".map");
-        //SetupCanvasController.CreateMapSet();
-
         levelBuilder.BuildMap(_levelMap);
         var min = Math.Min(levelBuilder.board_resolution.width, levelBuilder.board_resolution.height);
         var max = Math.Max(levelBuilder.board_resolution.width, levelBuilder.board_resolution.height);
@@ -141,6 +133,7 @@ public class GameManager : MonoBehaviour
         piece_started_index = 0;
         screenFader.MakeTransition();
         currentState = levelStartState;
+        print("map load" + mapIndex);
     }
 
     private void InitSounds()
@@ -374,19 +367,24 @@ public class GameManager : MonoBehaviour
             movement_interpolation += Time.deltaTime * movement_interpolation_speed;
             selection.transform.position = Vector3.MoveTowards(selection.transform.position, final_position,
                 movement_interpolation);
-            var absSqrDeltaPosition =
-                Math.Abs(selection.transform.position.sqrMagnitude - final_position.sqrMagnitude);
-            print("move!!!" + absSqrDeltaPosition);
-            // if (absSqrDeltaPosition <= min_selection_distance)
-            // {
+            // var absSqrDeltaPosition =
+            //     Math.Abs(selection.transform.position.sqrMagnitude - final_position.sqrMagnitude);
             // Se fuerza la posicion final para evitar errores
             selection.transform.position = final_position;
             // Se reinicia el manejador de interpolacion
             movement_interpolation = 0;
             // Se actualiza la logica de las fichas movidas
             RemoveUpdateChildren(selection);
-            currentState = idleState;
-            // }
+
+            if (levelBuilder.map.LevelWon())
+            {
+                LevelWonSound();
+                print("You Win!!!");
+                var nextMap = (current_map + 1) % _levelMapSet.maps.Length;
+                user_data.lastUnlockedMap = Mathf.Max(user_data.lastUnlockedMap, nextMap);
+                LoadMap(nextMap);
+            }
+            else currentState = idleState;
         }
     }
 
@@ -468,17 +466,6 @@ public class GameManager : MonoBehaviour
                 pieceTransform.transform.parent = levelBuilder.board.transform;
             }
         }
-
-        if (levelBuilder.map.LevelWon())
-        {
-            LevelWonSound();
-            print("You Win!!!");
-            int nextMap = (current_map + 1) % _levelMapSet.maps.Length;
-            user_data.lastUnlockedMap = Mathf.Max(user_data.lastUnlockedMap, nextMap);
-            LoadMap(nextMap);
-        }
-        else
-            currentState = idleState;
     }
 
     private void CleanSelection()
