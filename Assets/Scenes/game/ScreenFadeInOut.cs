@@ -13,7 +13,7 @@ namespace Scenes.game
         private void Awake()
         {
             image = gameObject.AddComponent<Image>();
-            // guiTexture.rectTransform = new Rect(0, 0, Screen.width, Screen.height);
+            image.rectTransform.sizeDelta = new Vector2(Screen.width, Screen.height);
         }
 
         private void Update()
@@ -36,24 +36,17 @@ namespace Scenes.game
 
         private void EndScene()
         {
-            FadeToBlack();
-            if (image.color.a >= 0.95f)
-            {
-                image.enabled = true;
-                image.color = Color.black;
-                sceneEnding = false;
-                sceneStarting = true;
-            }
-        }
-
-        private void FadeToClear()
-        {
-            image.color = Color.Lerp(image.color, Color.clear, fadeSpeed * Time.deltaTime);
-        }
-
-        private void FadeToBlack()
-        {
             image.color = Color.Lerp(image.color, Color.black, fadeSpeed * Time.deltaTime);
+            var imageVisible = image.color.a >= 0.95f;
+
+            if (!imageVisible) return;
+            image.enabled = true;
+            image.color = Color.black;
+            sceneEnding = false;
+            sceneStarting = true;
         }
+
+        private void FadeToClear() =>
+            image.color = Color.Lerp(image.color, Color.clear, fadeSpeed * Time.deltaTime);
     }
 }
